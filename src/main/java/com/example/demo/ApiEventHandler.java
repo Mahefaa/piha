@@ -16,6 +16,7 @@ public class ApiEventHandler implements RequestStreamHandler {
 
   static {
     try {
+      // handle her
       handler = SpringBootLambdaContainerHandler.getAwsProxyHandler(PojaApplication.class);
     } catch (ContainerInitializationException e) {
       throw new RuntimeException("Initialization of Spring Boot Application failed", e);
