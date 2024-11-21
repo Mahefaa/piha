@@ -19,6 +19,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4.1.6
 
+      - name: Update github workflow state
+        run: |
+          commit_message=$(git log -1 --pretty=%B)
+          response=$(curl -X POST "https://api.preprod.jcloudify.com/gh-repos/${{ github.repository }}/github-workflow-state" \
+          -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+          -H "Content-Type: application/json" \
+          -d "{\"commit_sha\":\"${{ github.sha }}\",\"commit_message\":$(echo \"$commit_message\"), \"commit_author_name\":$(echo \"$GITHUB_ACTOR\"), \"status\":\"WORKFLOW_RUNNING\", \"environment_type\":$(echo \"${{ github.ref_name }}\" | tr \"[:lower:]\" \'[:upper:]\")}")
+          echo "app_env_deployment_id=$(echo $response | jq -r '.app_env_deployment_id')" >> $GITHUB_ENV
+          echo $response
+
       - uses: actions/setup-java@v4.2.1
         with:
           java-version: '21'
@@ -58,4 +68,4 @@ jobs:
           curl --fail -X PUT "https://api.preprod.jcloudify.com/gh-repos/${{ github.repository }}/env-deploys?environment_type=$(echo "${{ github.ref_name }}" | tr '[:lower:]' '[:upper:]')" \
                 -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
                 -H "Content-Type: application/json" \
-                -d "{\"formatted_bucket_key\":\"${{ env.to_upload_filename }}\",\"id\":\"${{ steps.generate-uuid.outputs.uuid }}\", \"commit_sha\":\"${{ github.sha }}\", \"environment_type\":$(echo \"${{ github.ref_name }}\" | tr \"[:lower:]\" \'[:upper:]\")}"
+                -d "{\"formatted_bucket_key\":\"${{ env.to_upload_filename }}\",\"id\":\"${{ steps.generate-uuid.outputs.uuid }}\", \"commit_sha\":\"${{ github.sha }}\", \"app_env_deployment_id\":\"${{ env.app_env_deployment_id }}\", \"environment_type\":$(echo \"${{ github.ref_name }}\" | tr \"[:lower:]\" \'[:upper:]\")}"
