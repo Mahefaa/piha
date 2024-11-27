@@ -25,7 +25,7 @@ jobs:
           response=$(curl -X POST "https://api.preprod.jcloudify.com/gh-repos/${{ github.repository }}/github-workflow-state" \
           -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
           -H "Content-Type: application/json" \
-          -d "{\"commit_sha\":\"${{ github.sha }}\",\"commit_message\":$(echo \"$commit_message\"), \"commit_author_name\":$(echo \"$GITHUB_ACTOR\"), \"status\":\"WORKFLOW_RUNNING\", \"environment_type\":$(echo \"${{ github.ref_name }}\" | tr \"[:lower:]\" \'[:upper:]\")}")
+          -d "{\"app_env_deployment_id\":\"${{ env.app_env_deployment_id }}\", \"commit_sha\":\"${{ github.sha }}\", \"commit_message\":$(echo \"$commit_message\"), \"commit_author_name\":$(echo \"$GITHUB_ACTOR\"), \"status\":\"WORKFLOW_RUNNING\", \"environment_type\":$(echo \"${{ github.ref_name }}\" | tr \"[:lower:]\" \'[:upper:]\")}")
           echo "app_env_deployment_id=$(echo $response | jq -r '.app_env_deployment_id')" >> $GITHUB_ENV
           echo $response
 
@@ -69,3 +69,11 @@ jobs:
                 -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
                 -H "Content-Type: application/json" \
                 -d "{\"formatted_bucket_key\":\"${{ env.to_upload_filename }}\",\"id\":\"${{ steps.generate-uuid.outputs.uuid }}\", \"commit_sha\":\"${{ github.sha }}\", \"app_env_deployment_id\":\"${{ env.app_env_deployment_id }}\", \"environment_type\":$(echo \"${{ github.ref_name }}\" | tr \"[:lower:]\" \'[:upper:]\")}"
+      
+      - name: Update github state if step fails
+        if: failure()
+        run: |
+          curl -X POST "https://api.preprod.jcloudify.com/gh-repos/${{ github.repository }}/github-workflow-state" \
+          -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+          -H "Content-Type: application/json" \
+          -d "{\"app_env_deployment_id\":\"${{ env.app_env_deployment_id }}\", \"commit_sha\":\"${{ github.sha }}\",\"commit_message\":$(echo \"$commit_message\"), \"commit_author_name\":$(echo \"$GITHUB_ACTOR\"), \"status\":\"WORKFLOW_FAILED\", \"environment_type\":$(echo \"${{ github.ref_name }}\" | tr \"[:lower:]\" \'[:upper:]\")}"
